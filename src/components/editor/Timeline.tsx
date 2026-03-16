@@ -78,7 +78,6 @@ export default function Timeline() {
     const x = e.clientX - rect.left + scrollRef.current.scrollLeft;
     const t = Math.max(0, x / pxPerSec);
     setCurrentTime(t);
-    setLocalTime(t);
   }, [pxPerSec, setCurrentTime]);
 
   // ── Keyboard shortcuts ────────────────────────────────────
@@ -90,15 +89,15 @@ export default function Timeline() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
       if (e.key === ' ') { e.preventDefault(); setIsPlaying(!isPlaying); }
-      if (e.key === 'Home') { setCurrentTime(0); setLocalTime(0); }
-      if (e.key === 'End')  { setCurrentTime(duration); setLocalTime(duration); }
-      if (e.key === 'ArrowLeft')  { const t = Math.max(0, localTime - (e.shiftKey ? 5 : 1/30)); setCurrentTime(t); setLocalTime(t); }
-      if (e.key === 'ArrowRight') { const t = Math.min(duration, localTime + (e.shiftKey ? 5 : 1/30)); setCurrentTime(t); setLocalTime(t); }
+      if (e.key === 'Home') { setCurrentTime(0); }
+      if (e.key === 'End')  { setCurrentTime(duration); }
+      if (e.key === 'ArrowLeft')  { const t = Math.max(0, currentTime - (e.shiftKey ? 5 : 1/30)); setCurrentTime(t); }
+      if (e.key === 'ArrowRight') { const t = Math.min(duration, currentTime + (e.shiftKey ? 5 : 1/30)); setCurrentTime(t); }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClipId) {
         useEditorStore.getState().removeClip(selectedClipId);
       }
       if (e.key === 's' && !e.ctrlKey && selectedClipId) {
-        splitClip(selectedClipId, localTime);
+        splitClip(selectedClipId, currentTime);
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'd' && selectedClipId) {
         e.preventDefault();
@@ -107,18 +106,18 @@ export default function Timeline() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isPlaying, localTime, duration, selectedClipId, undo, redo, setCurrentTime, setIsPlaying, splitClip]);
+  }, [isPlaying, currentTime, duration, selectedClipId, undo, redo, setCurrentTime, setIsPlaying, splitClip]);
 
   // ── Scroll playhead into view when playing ────────────────
   useEffect(() => {
     if (isPlaying && scrollRef.current) {
-      const headX = localTime * pxPerSec;
+      const headX = currentTime * pxPerSec;
       const { scrollLeft, clientWidth } = scrollRef.current;
       if (headX > scrollLeft + clientWidth - 80) {
         scrollRef.current.scrollLeft = headX - 80;
       }
     }
-  }, [localTime, isPlaying, pxPerSec]);
+  }, [currentTime, isPlaying, pxPerSec]);
 
   // ── Zoom with scroll wheel ────────────────────────────────
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -153,7 +152,7 @@ export default function Timeline() {
         <div className="w-px h-5 bg-[var(--editor-border)] mx-1" />
 
         {/* Playback Controls */}
-        <button onClick={() => { setCurrentTime(0); setLocalTime(0); }}
+        <button onClick={() => { setCurrentTime(0); }}
           data-tooltip="Go to Start (Home)" className="btn btn-ghost text-xs p-1.5 w-8 h-8 justify-center">
           ⏮
         </button>
@@ -162,21 +161,21 @@ export default function Timeline() {
           className={`btn ${isPlaying ? 'btn-danger' : 'btn-primary'} text-base w-10 h-8 justify-center`}>
           {isPlaying ? '⏸' : '▶'}
         </button>
-        <button onClick={() => { setCurrentTime(duration); setLocalTime(duration); }}
+        <button onClick={() => { setCurrentTime(duration); }}
           data-tooltip="Go to End (End)" className="btn btn-ghost text-xs p-1.5 w-8 h-8 justify-center">
           ⏭
         </button>
 
         {/* Time display */}
         <code className="text-xs font-mono text-slate-400 ml-1 bg-black/30 px-2 py-1 rounded">
-          {formatTimecode(localTime)}
+          {formatTimecode(currentTime)}
         </code>
 
         <div className="w-px h-5 bg-[var(--editor-border)] mx-1" />
 
         {/* Split clip */}
         <button
-          onClick={() => selectedClipId && splitClip(selectedClipId, localTime)}
+          onClick={() => selectedClipId && splitClip(selectedClipId, currentTime)}
           data-tooltip="Split Clip at Playhead (S)"
           disabled={!selectedClipId}
           className="btn btn-ghost text-xs px-2 h-8"
@@ -276,7 +275,7 @@ export default function Timeline() {
             totalWidth={totalWidth}
             pxPerSec={pxPerSec}
             duration={duration}
-            currentTime={localTime}
+            currentTime={currentTime}
           />
 
           {/* Track rows */}
@@ -293,10 +292,10 @@ export default function Timeline() {
             {/* Playhead */}
             {totalTracksHeight > 0 && (
               <PlayheadCursor
-                currentTime={localTime}
+                currentTime={currentTime}
                 pxPerSec={pxPerSec}
                 totalHeight={totalTracksHeight + RULER_HEIGHT}
-                onTimeChange={(t) => { setCurrentTime(t); setLocalTime(t); setIsPlaying(false); }}
+                onTimeChange={(t) => { setCurrentTime(t); setIsPlaying(false); }}
               />
             )}
           </div>
