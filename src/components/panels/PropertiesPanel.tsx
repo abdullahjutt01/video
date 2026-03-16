@@ -162,6 +162,27 @@ export default function PropertiesPanel() {
           </div>
         </div>
 
+        {/* Quick Actions (Smart Tools) */}
+        {clip.type === 'image' && (
+          <div className="border-t border-[var(--editor-border)] pt-4 space-y-2">
+            <label className="label text-indigo-400/80">⚡ Smart Tools</label>
+            <button
+              onClick={() => {
+                const projectDuration = useEditorStore.getState().duration;
+                if (projectDuration > clip.startTime) {
+                  updateClip(clip.id, { duration: projectDuration - clip.startTime });
+                }
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-medium flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            >
+              <span>📏</span> Fill to Project End
+            </button>
+            <p className="text-[9px] text-slate-600 text-center px-2">
+              Instantly matches the image length to your longest audio/video track.
+            </p>
+          </div>
+        )}
+
         {/* Text clip options */}
         {clip.text !== undefined && (
           <div className="space-y-3 border-t border-[var(--editor-border)] pt-3">
