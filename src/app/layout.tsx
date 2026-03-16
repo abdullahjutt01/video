@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import './components.css';
 
 export const metadata: Metadata = {
   title: 'NoLimit Video Editor — Professional 4K Online Editing',
