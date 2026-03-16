@@ -173,16 +173,26 @@ export default function PreviewCanvas() {
   const displayW = 640;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-[var(--editor-bg)] p-4">
+    <div className="flex flex-col items-center justify-center h-full w-full bg-[var(--editor-bg)] p-4 overflow-hidden">
+      {/* 
+          Container that fits within parent using both W and H constraints.
+          aspectRatio: '9/16' or '16/9' ensures the shape is correct.
+      */}
       <div
         className="relative shadow-2xl rounded-lg overflow-hidden border border-[var(--editor-border)] bg-black"
-        style={{ width: '100%', maxWidth: displayW, ...aspectStyle }}
+        style={{ 
+          maxWidth: '100%', 
+          maxHeight: '100%',
+          aspectRatio: settings.aspectRatio.replace(':', ' / ') || '16 / 9',
+          width: 'auto',
+          height: 'auto'
+        }}
       >
         <canvas
           ref={canvasRef}
           width={resW}
           height={resH}
-          className="w-full h-auto block"
+          className="w-full h-full block object-contain"
         />
 
         {/* Play indicator */}
