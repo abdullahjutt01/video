@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { temporal } from 'zundo';
+import { v4 as uuidv4 } from 'uuid';
 import type { Track, Clip, TrackType, Effect, ProjectSettings } from '@/types/editor';
 
 // ── Default project settings ─────────────────────────────────
@@ -82,7 +83,7 @@ export interface EditorState {
 // ─────────────────────────────────────────────────────────────
 // Internal helpers
 // ─────────────────────────────────────────────────────────────
-const uid = () => crypto.randomUUID();
+const uid = () => uuidv4();
 
 /** Recalculate total project duration from all clips */
 const calcDuration = (tracks: Track[]): number =>
