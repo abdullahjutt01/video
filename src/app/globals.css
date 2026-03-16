@@ -1,28 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── CSS Variables ─────────────────────────────────────────── */
+/* ── Professional CSS Variables ───────────────────────────── */
 :root {
-  --editor-bg:       #0d0d1a;
-  --editor-surface:  #13131f;
-  --editor-panel:    #1a1a2e;
-  --editor-border:   #2a2a40;
-  --editor-hover:    #252540;
+  --editor-bg:       #020205;
+  --editor-surface:  rgba(13, 13, 26, 0.7);
+  --editor-panel:    rgba(20, 20, 35, 0.6);
+  --editor-border:   rgba(255, 255, 255, 0.08);
+  --editor-hover:    rgba(99, 102, 241, 0.12);
   --editor-accent:   #6366f1;
   --editor-accent-h: #4f52d8;
-  --editor-text:     #e2e8f0;
-  --editor-muted:    #6b7280;
+  --editor-text:     #f8fafc;
+  --editor-muted:    #94a3b8;
 
   --track-video:     #3b82f6;
-  --track-audio:     #22c55e;
-  --track-text:      #eab308;
-  --track-voiceover: #a855f7;
+  --track-audio:     #10b981;
+  --track-text:      #f59e0b;
+  --track-voiceover: #8b5cf6;
 
-  --scrollbar-thumb: #2a2a40;
-  --scrollbar-track: #13131f;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --scrollbar-track: transparent;
+  
+  --glass-bg: blur(12px) saturate(180%);
 }
 
 /* ── Base Reset ────────────────────────────────────────────── */
@@ -34,10 +36,13 @@ body {
   height: 100%;
   margin: 0;
   background: var(--editor-bg);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
   color: var(--editor-text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden; /* Editor is full-viewport */
+  overflow: hidden;
 }
 
 /* ── Custom Scrollbar ──────────────────────────────────────── */

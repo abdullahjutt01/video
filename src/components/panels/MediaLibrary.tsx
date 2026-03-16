@@ -3,6 +3,7 @@
 // MediaLibrary.tsx — Left panel: upload + browse media assets
 // ─────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useEditorStore } from '@/store/useEditorStore';
 import type { TrackType } from '@/types/editor';
 
@@ -38,7 +39,7 @@ export default function MediaLibrary() {
 
       const src = URL.createObjectURL(file);
       const item: LibraryItem = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: file.name,
         type: isVideo ? 'video' : isAudio ? 'audio' : 'image',
         src,

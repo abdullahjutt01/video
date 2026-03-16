@@ -101,17 +101,23 @@ export default function PreviewCanvas() {
       // Render Video/Image
       if (clip.trackType === 'video' || (clip.trackType === 'voiceover' && clip.src)) {
         const el = mediaCache.current.get(clip.id);
+        
         if (el && (el instanceof HTMLImageElement || (el instanceof HTMLVideoElement && el.readyState >= 2))) {
-          // Fill canvas (maintain aspect or stretch? simple stretch for now)
           ctx.drawImage(el, 0, 0, canvas.width, canvas.height);
         } else if (clip.src) {
-           // Loading state
-           ctx.fillStyle = '#1e1b4b';
-           ctx.fillRect(0, 0, canvas.width, canvas.height);
-           ctx.fillStyle = 'rgba(255,255,255,0.4)';
-           ctx.font = '16px Inter';
-           ctx.textAlign = 'center';
-           ctx.fillText('⏳ Loading...', canvas.width/2, canvas.height/2);
+          // Glassmorphic loading state
+          ctx.fillStyle = 'rgba(15, 15, 30, 0.8)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          ctx.font = '500 14px Outfit';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.textAlign = 'center';
+          ctx.fillText('⚡ SYNCING MEDIA...', canvas.width/2, canvas.height/2);
+          
+          // Subtle pulse bar
+          const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
+          ctx.fillStyle = `rgba(99, 102, 241, ${0.1 + pulse * 0.2})`;
+          ctx.fillRect(canvas.width/2 - 60, canvas.height/2 + 20, 120, 2);
         }
       }
 
