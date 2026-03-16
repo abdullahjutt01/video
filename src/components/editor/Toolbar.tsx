@@ -67,21 +67,37 @@ export default function Toolbar({ onExport, onVoiceover, onCaptions }: Props) {
 
       <div className="flex-1" />
 
-      {/* Resolution badge */}
-      <select
-        value={`${settings.resolution.width}x${settings.resolution.height}`}
-        onChange={(e) => {
-          const [w, h] = e.target.value.split('x').map(Number);
-          updateSettings({ resolution: { width: w, height: h } });
-        }}
-        className="bg-[var(--editor-bg)] border border-[var(--editor-border)] text-xs text-slate-400 rounded px-2 py-1 outline-none hidden md:block"
-      >
-        <option value="1920x1080">1080p (1920×1080)</option>
-        <option value="3840x2160">4K (3840×2160)</option>
-        <option value="1280x720">720p (1280×720)</option>
-        <option value="1080x1920">Vertical 9:16</option>
-        <option value="1080x1080">Square 1:1</option>
-      </select>
+      {/* Resolution & Social Presets */}
+      <div className="flex items-center gap-1.5 hidden md:flex">
+        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Frame</span>
+        <select
+          value={`${settings.resolution.width}x${settings.resolution.height}`}
+          onChange={(e) => {
+            const [w, h] = e.target.value.split('x').map(Number);
+            let aspectRatio = '16:9';
+            if (w === 1080 && h === 1920) aspectRatio = '9:16';
+            else if (w === 1080 && h === 1080) aspectRatio = '1:1';
+            else if (w === 1080 && h === 1350) aspectRatio = '4:5';
+            
+            updateSettings({ 
+              resolution: { width: w, height: h },
+              aspectRatio
+            });
+          }}
+          className="bg-[var(--editor-bg)] border border-[var(--editor-border)] text-[11px] text-slate-300 rounded px-2 py-1 outline-none hover:border-indigo-500/50 transition-colors cursor-pointer"
+        >
+          <optgroup label="Video Platforms">
+            <option value="1920x1080">📺 YouTube / Desktop (16:9)</option>
+            <option value="3840x2160">🎥 YouTube 4K (16:9)</option>
+            <option value="1280x720">📽️ YouTube 720p (16:9)</option>
+          </optgroup>
+          <optgroup label="Social Media">
+            <option value="1080x1920">📱 TikTok / Reels / Shorts (9:16)</option>
+            <option value="1080x1080">📸 Instagram Post (1:1)</option>
+            <option value="1080x1350">🤳 Instagram Portrait (4:5)</option>
+          </optgroup>
+        </select>
+      </div>
 
       {/* FPS selector */}
       <select
