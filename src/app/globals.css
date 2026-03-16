@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --editor-bg:       #0d0d1a;
+  --editor-surface:  #13131f;
+  --editor-panel:    #1a1a2e;
+  --editor-border:   #2a2a40;
+  --editor-hover:    #252540;
+  --editor-accent:   #6366f1;
+  --editor-accent-h: #4f52d8;
+  --editor-text:     #e2e8f0;
+  --editor-muted:    #6b7280;
+
+  --track-video:     #3b82f6;
+  --track-audio:     #22c55e;
+  --track-text:      #eab308;
+  --track-voiceover: #a855f7;
+
+  --scrollbar-thumb: #2a2a40;
+  --scrollbar-track: #13131f;
+}
+
+/* ── Base Reset ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* Editor is full-viewport */
+}
+
+/* ── Custom Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb  { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a58; }
+
+/* ── Utility Classes ───────────────────────────────────────── */
+.editor-surface { background: var(--editor-surface); }
+.editor-panel   { background: var(--editor-panel); }
+.editor-border  { border-color: var(--editor-border); }
+
+/* ── Timeline Clip Resize Handles ──────────────────────────── */
+.clip-resize-handle {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: 2px;
+}
+.timeline-clip:hover .clip-resize-handle { opacity: 1; }
+.clip-resize-handle.left  { left: 0; border-radius: 4px 0 0 4px; }
+.clip-resize-handle.right { right: 0; border-radius: 0 4px 4px 0; }
+
+/* ── Playhead ──────────────────────────────────────────────── */
+.playhead-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #f43f5e;
+  pointer-events: none;
+  z-index: 50;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.6);
+}
+.playhead-head {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px; height: 10px;
+  background: #f43f5e;
+  clip-path: polygon(50% 100%, 0 0, 100% 0);
+  cursor: grab;
+}
+.playhead-head:active { cursor: grabbing; }
+
+/* ── Timeline Track Clip ───────────────────────────────────── */
+.timeline-clip {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s, filter 0.1s;
+  display: flex; align-items: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.timeline-clip:active { cursor: grabbing; }
+.timeline-clip.selected {
+  box-shadow: 0 0 0 2px var(--editor-accent), 0 0 12px rgba(99, 102, 241, 0.4);
+}
+.timeline-clip:hover { filter: brightness(1.1); }
+
+.clip-label {
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  z-index: 1;
+  position: relative;
+}
+
+/* ── Waveform Bars (audio visual) ──────────────────────────── */
+.waveform-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 2px;
+  opacity: 0.35;
+}
+.waveform-bar {
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.9);
+  min-height: 2px;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px; font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  outline: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--editor-accent);
+  color: white;
+}
+.btn-primary:hover { background: var(--editor-accent-h); }
+.btn-ghost {
+  background: transparent;
+  color: var(--editor-text);
+  border-color: var(--editor-border);
+}
+.btn-ghost:hover { background: var(--editor-hover); }
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover { background: #dc2626; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Panel Sections ────────────────────────────────────────── */
+.panel-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--editor-border);
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+[data-tooltip] { position: relative; }
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%; transform: translateX(-50%);
+  background: #18182f;
+  color: var(--editor-text);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border: 1px solid var(--editor-border);
+}
+[data-tooltip]:hover::after { opacity: 1; }
+
+/* ── Loading Spinner ───────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--editor-border);
+  border-top-color: var(--editor-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── Fade animations ───────────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.animate-fade-in  { animation: fadeIn 0.2s ease-out; }
+.animate-slide-up { animation: slideUp 0.25s ease-out; }

@@ -1,0 +1,12 @@
+/* Additional utility classes used in panels */
+@layer components {
+  .label {
+    @apply text-xs font-medium text-slate-400 block mb-1;
+  }
+  .input {
+    @apply bg-[#0d0d1a] border border-[#2a2a40] rounded-lg px-2.5 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors;
+  }
+  .panel-divider {
+    @apply border-t border-[#2a2a40] my-4;
+  }
+}
