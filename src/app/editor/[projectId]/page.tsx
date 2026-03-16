@@ -14,6 +14,7 @@ import MediaLibrary from '@/components/panels/MediaLibrary';
 import PropertiesPanel from '@/components/panels/PropertiesPanel';
 import ExportModal from '@/components/panels/ExportModal';
 import VoiceoverModal from '@/components/panels/VoiceoverModal';
+import PlaybackEngine from '@/components/editor/PlaybackEngine';
 
 export default function EditorPage() {
   const { settings, loadProject } = useEditorStore();
@@ -40,6 +41,8 @@ export default function EditorPage() {
         onVoiceover={() => setShowVoiceover(true)}
         onCaptions={() => alert('Auto-captions: Connect to Whisper API endpoint')}
       />
+
+      <PlaybackEngine />
 
       {/* ── Main Body ────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">

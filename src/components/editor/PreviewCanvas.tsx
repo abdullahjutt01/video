@@ -1,7 +1,8 @@
 'use client';
 // ─────────────────────────────────────────────────────────────
-// PreviewCanvas.tsx — Video preview panel (uses HTML5 video for
-// proxy preview; FFmpeg.wasm for frame-accurate seeking)
+// PreviewCanvas.tsx — Real-time Video Preview Engine
+// Caches media elements and renders them onto Canvas API
+// Synchronized with Zustand store's currentTime
 // ─────────────────────────────────────────────────────────────
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useEditorStore } from '@/store/useEditorStore';
@@ -9,6 +10,7 @@ import { useEditorStore } from '@/store/useEditorStore';
 export default function PreviewCanvas() {
   const { tracks, currentTime, isPlaying, settings } = useEditorStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaCache = useRef<Map<string, HTMLVideoElement | HTMLImageElement>>(new Map());
   const [aspectStyle, setAspectStyle] = useState<React.CSSProperties>({});
 
   // Determine canvas aspect ratio from project settings
@@ -18,116 +20,175 @@ export default function PreviewCanvas() {
     setAspectStyle({ aspectRatio: `${ratio}` });
   }, [settings.resolution]);
 
-  // Draw frame on canvas (simplified: in production this uses FFmpeg.wasm)
+  // ── Media Management (Pre-load & Sync) ─────────────────────
+  useEffect(() => {
+    tracks.forEach(track => {
+      track.clips.forEach(clip => {
+        if (!clip.src) return;
+        
+        let el = mediaCache.current.get(clip.id);
+        if (!el) {
+          // Simple heuristic for media type
+          const isVideo = clip.src.toLowerCase().includes('video') || 
+                         clip.src.startsWith('blob:video') || 
+                         clip.src.endsWith('.mp4') || 
+                         clip.src.endsWith('.webm') || 
+                         clip.src.endsWith('.mov');
+
+          if (isVideo) {
+            const video = document.createElement('video');
+            video.src = clip.src;
+            video.muted = true;
+            video.preload = 'auto';
+            video.crossOrigin = 'anonymous';
+            mediaCache.current.set(clip.id, video);
+            el = video;
+          } else if (clip.src.toLowerCase().includes('image') || clip.src.startsWith('blob:image') || clip.src.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
+            const img = new Image();
+            img.src = clip.src;
+            img.crossOrigin = 'anonymous';
+            mediaCache.current.set(clip.id, img);
+            el = img;
+          }
+        }
+
+        // Sync playback position for videos
+        if (el instanceof HTMLVideoElement) {
+          const clipLocalTime = currentTime - clip.startTime;
+          if (clipLocalTime >= 0 && clipLocalTime <= clip.duration) {
+            const targetTime = clipLocalTime + (clip.trimStart || 0);
+            // Seek if significantly desynced (>100ms)
+            if (Math.abs(el.currentTime - targetTime) > 0.1) {
+              el.currentTime = targetTime;
+            }
+          }
+        }
+      });
+    });
+  }, [tracks, currentTime]);
+
+  // ── Rendering Logic ────────────────────────────────────────
   const drawFrame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
-    ctx.fillStyle = settings.backgroundColor || '#000';
+    // 1. Clear with background color
+    ctx.fillStyle = settings.backgroundColor || '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Find all active clips at currentTime
-    const activeVideoClips = tracks
-      .filter((t) => t.type === 'video' && !t.isMuted)
-      .flatMap((t) => t.clips)
-      .filter((c) => !c.isMuted && currentTime >= c.startTime && currentTime <= c.startTime + c.duration);
+    // 2. Filter active clips and sort by Z-order (Tracks)
+    // We treat tracks as layers (bottom track = index 0)
+    const activeLayers = tracks
+      .filter(t => !t.isMuted)
+      .flatMap(t => t.clips.map(c => ({ 
+        ...c, 
+        trackType: t.type,
+      })))
+      .filter(c => !c.isMuted && currentTime >= c.startTime && currentTime <= c.startTime + c.duration)
+      .sort((a, b) => {
+        // Simple track layering: video < audio < voiceover < text
+        const z = { video: 1, audio: 2, voiceover: 3, text: 4 };
+        return z[a.trackType as keyof typeof z] - z[b.trackType as keyof typeof z];
+      });
 
-    // Find active text clips
-    const activeTextClips = tracks
-      .filter((t) => t.type === 'text' && !t.isMuted)
-      .flatMap((t) => t.clips)
-      .filter((c) => !c.isMuted && currentTime >= c.startTime && currentTime <= c.startTime + c.duration);
-
-    if (activeVideoClips.length === 0) {
-      // Empty frame — show timecode
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Grid pattern
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-      ctx.lineWidth = 1;
-      const step = canvas.width / 12;
-      for (let x = 0; x <= canvas.width; x += step) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-      }
-      const vstep = canvas.height / 6;
-      for (let y = 0; y <= canvas.height; y += vstep) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-      }
-    }
-
-    // Render text clips
-    activeTextClips.forEach((clip) => {
+    // 3. Draw each layer
+    activeLayers.forEach(clip => {
       ctx.save();
-      ctx.font = `${clip.fontSize || 48}px ${clip.fontFamily || 'Inter, sans-serif'}`;
-      ctx.fillStyle = clip.textColor || '#ffffff';
-      ctx.textAlign = (clip.textAlign as CanvasTextAlign) || 'center';
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(
-        clip.text || clip.name,
-        canvas.width / 2,
-        canvas.height * 0.85,
-        canvas.width - 80
-      );
+      ctx.globalAlpha = clip.opacity ?? 1;
+
+      // Render Video/Image
+      if (clip.trackType === 'video' || (clip.trackType === 'voiceover' && clip.src)) {
+        const el = mediaCache.current.get(clip.id);
+        if (el && (el instanceof HTMLImageElement || (el instanceof HTMLVideoElement && el.readyState >= 2))) {
+          // Fill canvas (maintain aspect or stretch? simple stretch for now)
+          ctx.drawImage(el, 0, 0, canvas.width, canvas.height);
+        } else if (clip.src) {
+           // Loading state
+           ctx.fillStyle = '#1e1b4b';
+           ctx.fillRect(0, 0, canvas.width, canvas.height);
+           ctx.fillStyle = 'rgba(255,255,255,0.4)';
+           ctx.font = '16px Inter';
+           ctx.textAlign = 'center';
+           ctx.fillText('⏳ Loading...', canvas.width/2, canvas.height/2);
+        }
+      }
+
+      // Render Text
+      if (clip.trackType === 'text' && clip.text) {
+        ctx.font = `${clip.fontSize || 48}px ${clip.fontFamily || 'Inter, sans-serif'}`;
+        ctx.fillStyle = clip.textColor || '#ffffff';
+        ctx.textAlign = (clip.textAlign as CanvasTextAlign) || 'center';
+        
+        // Text Shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 6;
+        
+        // Multi-line support (simple)
+        const lines = clip.text.split('\n');
+        const lineHeight = (clip.fontSize || 48) * 1.2;
+        const totalH = lines.length * lineHeight;
+        const startY = (canvas.height / 2) - (totalH / 2) + (lineHeight / 2);
+
+        lines.forEach((line, i) => {
+          ctx.fillText(line, canvas.width / 2, startY + (i * lineHeight));
+        });
+      }
+
       ctx.restore();
     });
 
-    // Timecode overlay (bottom right)
+    // 4. Overlays (Timecode)
     ctx.save();
     ctx.font = '14px JetBrains Mono, monospace';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.textAlign = 'right';
-    ctx.fillText(formatTimecode(currentTime), canvas.width - 12, canvas.height - 12);
+    ctx.fillText(formatTimecode(currentTime), canvas.width - 20, canvas.height - 20);
     ctx.restore();
   }, [tracks, currentTime, settings]);
 
-  // Redraw on time/track change
+  // ── Render Loop ───────────────────────────────────────────
   useEffect(() => {
-    drawFrame();
+    let rafId: number;
+    const render = () => {
+      drawFrame();
+      rafId = requestAnimationFrame(render);
+    };
+    render();
+    return () => cancelAnimationFrame(rafId);
   }, [drawFrame]);
 
   const { width: resW, height: resH } = settings.resolution;
-  // Scale down for display (max 640 wide in panel)
   const displayW = 640;
-  const displayH = Math.round(displayW * (resH / resW));
 
   return (
     <div className="flex flex-col items-center justify-center h-full bg-[var(--editor-bg)] p-4">
-      {/* Canvas container */}
       <div
-        className="relative shadow-2xl rounded-lg overflow-hidden"
+        className="relative shadow-2xl rounded-lg overflow-hidden border border-[var(--editor-border)] bg-black"
         style={{ width: '100%', maxWidth: displayW, ...aspectStyle }}
       >
         <canvas
           ref={canvasRef}
           width={resW}
           height={resH}
-          style={{ width: '100%', height: 'auto', display: 'block', background: '#000' }}
+          className="w-full h-auto block"
         />
 
-        {/* Play indicator overlay */}
+        {/* Play indicator */}
         {isPlaying && (
-          <div style={{
-            position: 'absolute', top: 8, right: 8,
-            background: 'rgba(244, 63, 94, 0.9)', color: 'white',
-            fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-            fontFamily: 'monospace', letterSpacing: 1,
-          }}>
-            ● REC
+          <div className="absolute top-4 right-4 bg-red-600/90 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1.5 animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-white" />
+            LIVE PREVIEW
           </div>
         )}
       </div>
 
-      {/* Resolution info */}
-      <div className="flex items-center gap-3 mt-3 text-xs text-slate-600">
-        <span>{resW}×{resH}</span>
-        <span>·</span>
-        <span>{settings.fps} fps</span>
-        <span>·</span>
+      <div className="flex items-center gap-4 mt-4 text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+        <span>{resW} × {resH}</span>
+        <span className="w-1 h-1 rounded-full bg-slate-800" />
+        <span>{settings.fps} FPS</span>
+        <span className="w-1 h-1 rounded-full bg-slate-800" />
         <span>{settings.aspectRatio}</span>
       </div>
     </div>
@@ -136,6 +197,5 @@ export default function PreviewCanvas() {
 
 function formatTimecode(secs: number): string {
   const m = Math.floor(secs / 60), s = Math.floor(secs % 60), f = Math.floor((secs % 1) * 30);
-  return `${pad(m)}:${pad(s)}:${pad(f)}`;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}:${f.toString().padStart(2, '0')}`;
 }
-function pad(n: number) { return n.toString().padStart(2, '0'); }

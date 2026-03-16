@@ -37,7 +37,6 @@ export default function Timeline() {
   } = useEditorStore();
 
   const { undo, redo, canUndo, canRedo } = useEditorHistory();
-  const [localTime, setLocalTime] = useState(currentTime);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
 
@@ -48,9 +47,13 @@ export default function Timeline() {
         if (lastTickRef.current === 0) lastTickRef.current = now;
         const dt = (now - lastTickRef.current) / 1000;
         lastTickRef.current = now;
-        const next = Math.min(duration || 999, localTime + dt);
-        setLocalTime(next);
+        
+        // Use functional update to avoid stale closure of currentTime
+        const latestTime = useEditorStore.getState().currentTime;
+        const next = Math.min(duration || 999, latestTime + dt);
+        
         setCurrentTime(next);
+
         if (next < (duration || 999)) {
           rafRef.current = requestAnimationFrame(tick);
         } else {
@@ -63,12 +66,7 @@ export default function Timeline() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     }
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [isPlaying, duration]); // eslint-disable-line
-
-  // ── Sync local time from store when seeking ────────────────
-  useEffect(() => {
-    if (!isPlaying) setLocalTime(currentTime);
-  }, [currentTime, isPlaying]);
+  }, [isPlaying, duration, setCurrentTime, setIsPlaying]);
 
   const pxPerSec = zoom;
   const totalWidth = Math.max((duration + 5) * pxPerSec, scrollRef.current?.clientWidth ?? 800);
