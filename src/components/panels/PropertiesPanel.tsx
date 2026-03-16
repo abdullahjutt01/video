@@ -4,6 +4,63 @@
 // ─────────────────────────────────────────────────────────────
 import { useEditorStore, useSelectedClip } from '@/store/useEditorStore';
 
+// ── Timing Helpers ───────────────────────────────────────────
+function secsToHMS(totalSecs: number) {
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return { h, m, s };
+}
+
+function hmsToSecs(h: number, m: number, s: number) {
+  return (h * 3600) + (m * 60) + s;
+}
+
+interface HMSInputProps {
+  label: string;
+  totalSeconds: number;
+  onChange: (secs: number) => void;
+  min?: number;
+}
+
+function HMSInput({ label, totalSeconds, onChange, min = 0 }: HMSInputProps) {
+  const { h, m, s } = secsToHMS(totalSeconds);
+
+  const update = (field: 'h' | 'm' | 's', val: string) => {
+    const v = parseFloat(val) || 0;
+    let newH = h, newM = m, newS = s;
+    if (field === 'h') newH = v;
+    if (field === 'm') newM = v;
+    if (field === 's') newS = v;
+    onChange(Math.max(min, hmsToSecs(newH, newM, newS)));
+  };
+
+  return (
+    <div>
+      <span className="text-[10px] text-slate-600 block mb-1">{label} (HH:MM:SS.ms)</span>
+      <div className="flex items-center gap-1">
+        <input
+          type="number" min={0} placeholder="HH"
+          value={h} onChange={(e) => update('h', e.target.value)}
+          className="input w-full text-[10px] px-1 h-7 text-center"
+        />
+        <span className="text-slate-700">:</span>
+        <input
+          type="number" min={0} max={59} placeholder="MM"
+          value={m} onChange={(e) => update('m', e.target.value)}
+          className="input w-full text-[10px] px-1 h-7 text-center"
+        />
+        <span className="text-slate-700">:</span>
+        <input
+          type="number" min={0} step={0.1} placeholder="SS"
+          value={s.toFixed(2)} onChange={(e) => update('s', e.target.value)}
+          className="input w-full text-[10px] px-0.5 h-7 text-center"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function PropertiesPanel() {
   const { updateClip, removeClip } = useEditorStore();
   const clip = useSelectedClip();
@@ -43,28 +100,19 @@ export default function PropertiesPanel() {
         </div>
 
         {/* Timing */}
-        <div>
-          <label className="label">Timing</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-[10px] text-slate-600 block mb-1">Start (s)</span>
-              <input
-                type="number" step={0.01} min={0}
-                value={clip.startTime.toFixed(2)}
-                onChange={(e) => updateClip(clip.id, { startTime: parseFloat(e.target.value) || 0 })}
-                className="input w-full text-xs"
-              />
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-600 block mb-1">Duration (s)</span>
-              <input
-                type="number" step={0.01} min={0.1}
-                value={clip.duration.toFixed(2)}
-                onChange={(e) => updateClip(clip.id, { duration: parseFloat(e.target.value) || 0.1 })}
-                className="input w-full text-xs"
-              />
-            </div>
-          </div>
+        <div className="space-y-3">
+          <label className="label text-indigo-400/80">⏱ Timing Control</label>
+          <HMSInput
+            label="Start At"
+            totalSeconds={clip.startTime}
+            onChange={(val) => updateClip(clip.id, { startTime: val })}
+          />
+          <HMSInput
+            label="Duration"
+            totalSeconds={clip.duration}
+            min={0.1}
+            onChange={(val) => updateClip(clip.id, { duration: val })}
+          />
         </div>
 
         {/* Volume */}
