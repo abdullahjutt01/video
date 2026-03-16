@@ -42,6 +42,12 @@ export interface EditorState {
   isPlaying: boolean;
   zoom: number; // pixels per second
 
+  // ── Recording / Export References ──
+  canvasRef: HTMLCanvasElement | null;
+  audioStream: MediaStream | null;
+  setCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  setAudioStream: (stream: MediaStream | null) => void;
+
   // ──────────────────────────────────────────────────────────
   // Actions
   // ──────────────────────────────────────────────────────────
@@ -332,6 +338,12 @@ export const useEditorStore = create<EditorState>()(
       setCurrentTime: (t) => set((s) => { s.currentTime = Math.max(0, t); }),
       setIsPlaying: (v) => set((s) => { s.isPlaying = v; }),
       setZoom: (z) => set((s) => { s.zoom = Math.min(300, Math.max(20, z)); }),
+
+      // ── Recording ──────────────────────────────────────────
+      canvasRef: null,
+      audioStream: null,
+      setCanvasRef: (ref) => set((s) => { s.canvasRef = ref; }),
+      setAudioStream: (stream) => set((s) => { s.audioStream = stream; }),
     })),
     {
       // Zundo config: which slices to include in undo history

@@ -18,7 +18,7 @@ const QUALITY_OPTS: { key: ExportQuality; label: string; desc: string; plan: str
 ];
 
 export default function ExportModal({ onClose }: Props) {
-  const { settings, duration, tracks } = useEditorStore();
+  const { settings, duration, tracks, canvasRef, audioStream, setIsPlaying, setCurrentTime, currentTime } = useEditorStore();
   const [quality, setQuality] = useState<ExportQuality>('high');
   const [format, setFormat] = useState<'mp4' | 'webm'>('mp4');
   const [status, setStatus] = useState<'idle' | 'queued' | 'processing' | 'done' | 'error'>('idle');
@@ -28,21 +28,51 @@ export default function ExportModal({ onClose }: Props) {
   const totalClips = tracks.reduce((n, t) => n + t.clips.length, 0);
 
   const handleExport = async () => {
-    if (totalClips === 0) return;
-    setStatus('queued');
-
-    // Simulate queue → processing → done (replace with real API call)
-    await new Promise((r) => setTimeout(r, 800));
-    setStatus('processing');
-
-    // Simulate progress
-    for (let p = 5; p <= 100; p += 5) {
-      await new Promise((r) => setTimeout(r, 120));
-      setProgress(p);
+    if (totalClips === 0 || !canvasRef || !audioStream) {
+      alert("Please ensure media is loaded correctly before exporting.");
+      return;
     }
+    
+    setStatus('processing');
+    setProgress(0);
+    setCurrentTime(0);
 
-    setStatus('done');
-    setDownloadUrl('#'); // Replace with real S3 presigned URL
+    const stream = new MediaStream([
+      ...canvasRef.captureStream(30).getTracks(),
+      ...audioStream.getTracks()
+    ]);
+
+    const mimeType = format === 'mp4' ? 'video/mp4;codecs=h264' : 'video/webm;codecs=vp9';
+    const recorder = new MediaRecorder(stream, {
+      mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'video/webm',
+      videoBitsPerSecond: quality === '4k' ? 25000000 : (quality === 'high' ? 8000000 : 2500000),
+    });
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: recorder.mimeType });
+      const url = URL.createObjectURL(blob);
+      setDownloadUrl(url);
+      setStatus('done');
+      setIsPlaying(false);
+    };
+
+    // Begin recording
+    recorder.start();
+    setIsPlaying(true);
+
+    // Monitor progress
+    const checkProgress = setInterval(() => {
+      const p = Math.min(100, Math.round((useEditorStore.getState().currentTime / duration) * 100));
+      setProgress(p);
+
+      if (useEditorStore.getState().currentTime >= duration) {
+        clearInterval(checkProgress);
+        recorder.stop();
+        setIsPlaying(false);
+      }
+    }, 100);
   };
 
   return (
@@ -134,7 +164,7 @@ export default function ExportModal({ onClose }: Props) {
             <p className="text-xs text-slate-500 mb-4">Your video is ready to download</p>
             <a
               href={downloadUrl ?? '#'}
-              download
+              download={`${settings.name || 'exported-video'}.${format}`}
               className="btn btn-primary w-full text-sm py-3 text-center"
             >
               ⬇️ Download Video

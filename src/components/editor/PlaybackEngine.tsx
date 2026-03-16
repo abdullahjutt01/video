@@ -8,10 +8,29 @@ import { useEffect, useRef } from 'react';
 import { useEditorStore } from '@/store/useEditorStore';
 
 export default function PlaybackEngine() {
-  const { tracks, currentTime, isPlaying } = useEditorStore();
+  const { tracks, currentTime, isPlaying, setAudioStream } = useEditorStore();
   const playersRef = useRef<Map<string, HTMLAudioElement | HTMLVideoElement>>(new Map());
+  
+  // Audio Context for merging all tracks into one stream for recording
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const sourceNodesRef = useRef<Map<string, MediaElementAudioSourceNode>>(new Map());
 
   useEffect(() => {
+    if (!audioCtxRef.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      const dest = ctx.createMediaStreamDestination();
+      audioCtxRef.current = ctx;
+      destinationRef.current = dest;
+      setAudioStream(dest.stream);
+    }
+  }, [setAudioStream]);
+
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
     tracks.forEach(track => {
       track.clips.forEach(clip => {
         if (!clip.src) return;
@@ -28,6 +47,16 @@ export default function PlaybackEngine() {
           player.crossOrigin = 'anonymous';
           player.preload = 'auto';
           playersRef.current.set(clip.id, player);
+
+          // Route to Web Audio Graph
+          try {
+            const source = ctx.createMediaElementSource(player);
+            source.connect(destinationRef.current!);
+            source.connect(ctx.destination); // Also connect to speakers
+            sourceNodesRef.current.set(clip.id, source);
+          } catch (e) {
+            console.warn('Audio routing failed for clip:', clip.id, e);
+          }
         }
 
         const clipEndTime = clip.startTime + clip.duration;

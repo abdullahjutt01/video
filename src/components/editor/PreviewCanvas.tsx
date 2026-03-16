@@ -8,10 +8,18 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useEditorStore } from '@/store/useEditorStore';
 
 export default function PreviewCanvas() {
-  const { tracks, currentTime, isPlaying, settings } = useEditorStore();
+  const { tracks, currentTime, isPlaying, settings, setCanvasRef } = useEditorStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaCache = useRef<Map<string, HTMLVideoElement | HTMLImageElement>>(new Map());
   const [aspectStyle, setAspectStyle] = useState<React.CSSProperties>({});
+
+  // Register canvas ref for export
+  useEffect(() => {
+    if (canvasRef.current) {
+      setCanvasRef(canvasRef.current);
+    }
+    return () => setCanvasRef(null);
+  }, [setCanvasRef]);
 
   // Determine canvas aspect ratio from project settings
   useEffect(() => {
