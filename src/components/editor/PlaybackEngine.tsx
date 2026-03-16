@@ -20,7 +20,10 @@ export default function PlaybackEngine() {
         
         // Create player if it doesn't exist
         if (!player) {
-          player = clip.type === 'video' ? document.createElement('video') : document.createElement('audio');
+          const resolvedType = clip.type || (
+            (clip.src.toLowerCase().includes('video') || clip.src.match(/\.(mp4|webm|mov)$/i)) ? 'video' : 'audio'
+          );
+          player = resolvedType === 'video' ? document.createElement('video') : document.createElement('audio');
           player.src = clip.src;
           player.crossOrigin = 'anonymous';
           player.preload = 'auto';

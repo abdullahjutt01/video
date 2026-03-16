@@ -28,9 +28,13 @@ export default function PreviewCanvas() {
         
         let el = mediaCache.current.get(clip.id);
         if (!el) {
-        let el = mediaCache.current.get(clip.id);
-        if (!el) {
-          if (clip.type === 'video') {
+          // Heuristic fallback for older clips missing the 'type' field
+          const resolvedType = clip.type || (
+            (clip.src.toLowerCase().includes('video') || clip.src.match(/\.(mp4|webm|mov)$/i)) ? 'video' : 
+            (clip.src.toLowerCase().includes('image') || clip.src.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) ? 'image' : 'audio'
+          );
+
+          if (resolvedType === 'video') {
             const video = document.createElement('video');
             video.src = clip.src;
             video.muted = true;
@@ -38,14 +42,13 @@ export default function PreviewCanvas() {
             video.crossOrigin = 'anonymous';
             mediaCache.current.set(clip.id, video);
             el = video;
-          } else if (clip.type === 'image') {
+          } else if (resolvedType === 'image') {
             const img = new Image();
             img.src = clip.src;
             img.crossOrigin = 'anonymous';
             mediaCache.current.set(clip.id, img);
             el = img;
           }
-        }
         }
 
         // Sync playback position for videos
@@ -95,7 +98,12 @@ export default function PreviewCanvas() {
       ctx.globalAlpha = clip.opacity ?? 1;
 
       // Render Video/Image
-      if (clip.type === 'video' || clip.type === 'image' || (clip.type === 'voiceover' && clip.src)) {
+      const resolvedType = clip.type || (
+        (clip.src.toLowerCase().includes('video') || clip.src.match(/\.(mp4|webm|mov)$/i)) ? 'video' : 
+        (clip.src.toLowerCase().includes('image') || clip.src.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) ? 'image' : 'audio'
+      );
+
+      if (resolvedType === 'video' || resolvedType === 'image' || (resolvedType === 'voiceover' && clip.src)) {
         const el = mediaCache.current.get(clip.id);
         
         if (el && (el instanceof HTMLImageElement || (el instanceof HTMLVideoElement && el.readyState >= 2))) {

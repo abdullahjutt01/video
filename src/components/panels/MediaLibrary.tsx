@@ -38,12 +38,13 @@ export default function MediaLibrary() {
       if (!isVideo && !isAudio && !isImage) return;
 
       const src = URL.createObjectURL(file);
+      const itemId = uuidv4();
       const item: LibraryItem = {
-        id: uuidv4(),
+        id: itemId,
         name: file.name,
         type: isVideo ? 'video' : isAudio ? 'audio' : 'image',
         src,
-        duration: 10, // Will be updated after media loads
+        duration: isImage ? 5 : 0, // 0 means loading for media
         sizeMb: parseFloat((file.size / 1024 / 1024).toFixed(2)),
       };
 
@@ -51,7 +52,13 @@ export default function MediaLibrary() {
         const vid = document.createElement('video');
         vid.src = src;
         vid.onloadedmetadata = () => {
-          setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, duration: vid.duration } : i));
+          setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, duration: vid.duration || 10 } : i));
+        };
+      } else if (isAudio) {
+        const aud = new Audio();
+        aud.src = src;
+        aud.onloadedmetadata = () => {
+          setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, duration: aud.duration || 10 } : i));
         };
       }
 
