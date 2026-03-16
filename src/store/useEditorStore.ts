@@ -207,6 +207,7 @@ export const useEditorStore = create<EditorState>()(
           const newClip: Clip = {
             id: uid(),
             trackId,
+            type: clip.type, // Explicitly passed
             volume: 1.0,
             opacity: 1.0,
             playbackRate: 1.0,

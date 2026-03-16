@@ -28,14 +28,9 @@ export default function PreviewCanvas() {
         
         let el = mediaCache.current.get(clip.id);
         if (!el) {
-          // Simple heuristic for media type
-          const isVideo = clip.src.toLowerCase().includes('video') || 
-                         clip.src.startsWith('blob:video') || 
-                         clip.src.endsWith('.mp4') || 
-                         clip.src.endsWith('.webm') || 
-                         clip.src.endsWith('.mov');
-
-          if (isVideo) {
+        let el = mediaCache.current.get(clip.id);
+        if (!el) {
+          if (clip.type === 'video') {
             const video = document.createElement('video');
             video.src = clip.src;
             video.muted = true;
@@ -43,13 +38,14 @@ export default function PreviewCanvas() {
             video.crossOrigin = 'anonymous';
             mediaCache.current.set(clip.id, video);
             el = video;
-          } else if (clip.src.toLowerCase().includes('image') || clip.src.startsWith('blob:image') || clip.src.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
+          } else if (clip.type === 'image') {
             const img = new Image();
             img.src = clip.src;
             img.crossOrigin = 'anonymous';
             mediaCache.current.set(clip.id, img);
             el = img;
           }
+        }
         }
 
         // Sync playback position for videos
@@ -99,7 +95,7 @@ export default function PreviewCanvas() {
       ctx.globalAlpha = clip.opacity ?? 1;
 
       // Render Video/Image
-      if (clip.trackType === 'video' || (clip.trackType === 'voiceover' && clip.src)) {
+      if (clip.type === 'video' || clip.type === 'image' || (clip.type === 'voiceover' && clip.src)) {
         const el = mediaCache.current.get(clip.id);
         
         if (el && (el instanceof HTMLImageElement || (el instanceof HTMLVideoElement && el.readyState >= 2))) {

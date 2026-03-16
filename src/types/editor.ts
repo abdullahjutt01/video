@@ -34,6 +34,7 @@ export interface CaptionSegment {
 export interface Clip {
   id: string;
   trackId: string;
+  type: TrackType;       // 'video', 'audio', 'text', 'voiceover', etc.
   src: string;            // S3 URL or blob: URL (for uploaded media)
   name: string;
   /** Timeline position (seconds from project start) */

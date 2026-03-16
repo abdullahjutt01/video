@@ -78,6 +78,7 @@ export default function MediaLibrary() {
     const startTime = occupied.length > 0 ? Math.max(...occupied) + 0.1 : 0;
 
     addClip(targetTrack.id, {
+      type: item.type as any,
       src: item.src,
       name: item.name.replace(/\.[^.]+$/, ''),
       startTime,
@@ -114,6 +115,7 @@ export default function MediaLibrary() {
     const startTime = occupied.length > 0 ? Math.max(...occupied) + 0.1 : 0;
 
     addClip(textTrack.id, {
+      type: 'text',
       src: '',
       name: preset.name,
       startTime,

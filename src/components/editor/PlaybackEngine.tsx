@@ -20,8 +20,7 @@ export default function PlaybackEngine() {
         
         // Create player if it doesn't exist
         if (!player) {
-          const isVideo = clip.src.toLowerCase().includes('video') || clip.src.startsWith('blob:video');
-          player = isVideo ? document.createElement('video') : document.createElement('audio');
+          player = clip.type === 'video' ? document.createElement('video') : document.createElement('audio');
           player.src = clip.src;
           player.crossOrigin = 'anonymous';
           player.preload = 'auto';
