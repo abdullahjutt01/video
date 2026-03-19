@@ -91,8 +91,8 @@ export default function TimelineClip({ clip, trackType, pxPerSec, trackHeight, o
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Open clip properties panel
-  }, []);
+    selectClip(clip.id);
+  }, [clip.id, selectClip]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
